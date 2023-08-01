@@ -8,46 +8,6 @@ import ipaddress
 # C类地址:192.168.0.0至192.168.255.255
 
 
-def ip_range(start_ip: str, end_ip: str):
-    start = struct.unpack('!I', socket.inet_aton(start_ip))[0]
-    end = struct.unpack('!I', socket.inet_aton(end_ip))[0]
-    ip_list = []
-    for ip in range(start, end + 1):
-        ip_list.append(socket.inet_ntoa(struct.pack('!I', ip)))
-    return ip_list
-
-
-# 给定一个范围的ip,输出这个范围里面所有的ip地址
-def get_ip_range(ip_str: str):
-    if len(ip_str.split("-")) == 2:
-        first_ip = ip_str.split("-")[0]
-        last_ip = ip_str.split("-")[1]
-        ip_list = ip_range(first_ip, last_ip)
-        return ip_list
-    elif ipaddress.IPv4Network(ip_str):
-        network = ipaddress.ip_network(ip_str, strict=False)
-        first_ip = str(network.network_address + 1)
-        last_ip = str(network.broadcast_address - 1)
-        ip_list = ip_range(first_ip, last_ip)
-        return ip_list
-    else:
-        return False
-
-
-def ip_cidr(ip_address, subnet_mask):
-    try:
-        # 将IP地址和子网掩码转换为ipaddress对象
-        ip_network = ipaddress.IPv4Network(f"{ip_address}/{subnet_mask}", strict=False)
-
-        # 获取第一个主机位和最后一个主机位
-        first_host = ip_network.network_address + 1
-        last_host = ip_network.broadcast_address - 1
-
-        return str(first_host), str(last_host)
-    except ipaddress.AddressValueError:
-        return None, None
-
-
 # 检查输入的ip地址的范围格式是否合法
 def check_ip_range_format(ip_range_str: str):
     if len(ip_range_str.split("-")) == 2:
@@ -90,14 +50,11 @@ def check_ip_range_format(ip_range_str: str):
         return False
 
 
-print(check_ip_range_format("192.168.1.1-192.167.2.2"))
-
-
 # 检查输入的ip地址的范围格式是否合法
-def check_ip_cidr_format(ip_range_str: str):
-    if len(ip_range_str.split("/")) == 2:
-        ip_address = ip_range_str.split("/")[0]
-        subnet_mask = int(ip_range_str.split("/")[1])
+def check_ip_cidr_format(ip_cidr_str: str):
+    if len(ip_cidr_str.split("/")) == 2:
+        ip_address = ip_cidr_str.split("/")[0]
+        subnet_mask = int(ip_cidr_str.split("/")[1])
         if 8 <= subnet_mask <= 30:
             if ipaddress.IPv4Network(ip_address):
                 return True
@@ -105,3 +62,47 @@ def check_ip_cidr_format(ip_range_str: str):
             return False
     else:
         return False
+
+
+# 输入ip地址的起始范围，列表形式输出这个范围的所有ip地址
+def get_ip_range(start_ip: str, end_ip: str):
+    start = struct.unpack('!I', socket.inet_aton(start_ip))[0]
+    end = struct.unpack('!I', socket.inet_aton(end_ip))[0]
+    ip_list = []
+    for ip in range(start, end + 1):
+        ip_list.append(socket.inet_ntoa(struct.pack('!I', ip)))
+    return ip_list
+
+
+# 给定一个范围的ip,输出这个范围里面所有的ip地址
+def ip_range_list(ip_str: str):
+    first_ip = ip_str.split("-")[0]
+    last_ip = ip_str.split("-")[1]
+    ip_list = get_ip_range(first_ip, last_ip)
+    return ip_list
+
+
+def ip_cidr_list(ip_address, subnet_mask):
+    try:
+        # 将IP地址和子网掩码转换为ipaddress对象
+        ip_network = ipaddress.IPv4Network(f"{ip_address}/{subnet_mask}", strict=False)
+
+        # 获取第一个主机位和最后一个主机位
+        first_ip = str(ip_network.network_address + 1)
+        last_ip = str(ip_network.broadcast_address - 1)
+        ip_list = get_ip_range(first_ip, last_ip)
+        return ip_list
+    except ipaddress.AddressValueError:
+        return None, None
+
+
+def get_ip_list(ip_str: str):
+    if check_ip_range_format(ip_str):
+        return ip_range_list(ip_str)
+    elif check_ip_cidr_format(ip_str):
+        ip_address = ip_str.split("/")[0]
+        subnet_mask = ip_str.split("/")[1]
+        return ip_cidr_list(ip_address, subnet_mask)
+    else:
+        return False
+
